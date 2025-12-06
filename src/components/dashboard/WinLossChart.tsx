@@ -12,13 +12,16 @@ export function WinLossChart() {
     { name: 'Breakeven', value: stats.breakevenTrades, color: 'hsl(var(--neutral))' },
   ].filter(item => item.value > 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  type TooltipPayloadItem = { name: string; value: number; payload: { color: string } };
+
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: TooltipPayloadItem[] }) => {
     if (active && payload && payload.length) {
+      const item = payload[0];
       return (
         <div className="glass-card rounded-lg p-3 shadow-xl border border-border/50">
-          <p className="text-sm font-medium text-foreground">{payload[0].name}</p>
-          <p className="text-lg font-bold number-mono" style={{ color: payload[0].payload.color }}>
-            {payload[0].value} trades
+          <p className="text-sm font-medium text-foreground">{item.name}</p>
+          <p className="text-lg font-bold number-mono" style={{ color: item.payload.color }}>
+            {item.value} trades
           </p>
         </div>
       );

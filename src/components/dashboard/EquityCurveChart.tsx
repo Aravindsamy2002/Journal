@@ -22,17 +22,20 @@ export function EquityCurveChart() {
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  type TooltipPayloadItem = { value: number; payload: { pnl: number } };
+
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string | number }) => {
     if (active && payload && payload.length) {
+      const item = payload[0];
       return (
         <div className="glass-card rounded-lg p-3 shadow-xl border border-border/50">
           <p className="text-sm text-muted-foreground mb-1">{label}</p>
           <p className="text-lg font-bold number-mono text-foreground">
-            {formatCurrency(payload[0].value)}
+            {formatCurrency(item.value)}
           </p>
-          {payload[0].payload.pnl !== 0 && (
-            <p className={`text-sm font-medium ${payload[0].payload.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-              {payload[0].payload.pnl >= 0 ? '+' : ''}{formatCurrency(payload[0].payload.pnl)}
+          {item.payload.pnl !== 0 && (
+            <p className={`text-sm font-medium ${item.payload.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
+              {item.payload.pnl >= 0 ? '+' : ''}{formatCurrency(item.payload.pnl)}
             </p>
           )}
         </div>

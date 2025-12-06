@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTradeStore, TradeFilters, Trade } from '@/store/tradeStore';
+import { useTradeStore, TradeFilters, Trade, Session, TradeResult, MarketType, AccountType } from '@/store/tradeStore';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -154,7 +154,7 @@ export default function AllTrades() {
                 <label className="text-sm text-muted-foreground mb-1.5 block">Session</label>
                 <Select
                   value={filters.session || 'all'}
-                  onValueChange={(value) => setFilters({ ...filters, session: value === 'all' ? undefined : value as any })}
+                  onValueChange={(value) => setFilters({ ...filters, session: value === 'all' ? undefined : value as Session })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All" />
@@ -171,7 +171,7 @@ export default function AllTrades() {
                 <label className="text-sm text-muted-foreground mb-1.5 block">Result</label>
                 <Select
                   value={filters.result || 'all'}
-                  onValueChange={(value) => setFilters({ ...filters, result: value === 'all' ? undefined : value as any })}
+                  onValueChange={(value) => setFilters({ ...filters, result: value === 'all' ? undefined : value as TradeResult })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All" />
@@ -188,7 +188,7 @@ export default function AllTrades() {
                 <label className="text-sm text-muted-foreground mb-1.5 block">Market</label>
                 <Select
                   value={filters.marketType || 'all'}
-                  onValueChange={(value) => setFilters({ ...filters, marketType: value === 'all' ? undefined : value as any })}
+                  onValueChange={(value) => setFilters({ ...filters, marketType: value === 'all' ? undefined : value as MarketType })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All" />
@@ -206,7 +206,7 @@ export default function AllTrades() {
                 <label className="text-sm text-muted-foreground mb-1.5 block">Account</label>
                 <Select
                   value={filters.accountType || 'all'}
-                  onValueChange={(value) => setFilters({ ...filters, accountType: value === 'all' ? undefined : value as any })}
+                  onValueChange={(value) => setFilters({ ...filters, accountType: value === 'all' ? undefined : value as AccountType })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All" />

@@ -116,16 +116,19 @@ export default function Analytics() {
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  type TooltipPayloadItem = { value: number; payload: { color: string; trades: number } };
+
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string | number }) => {
     if (active && payload && payload.length) {
+      const item = payload[0];
       return (
         <div className="glass-card rounded-lg p-3 shadow-xl border border-border/50">
           <p className="text-sm font-medium text-foreground mb-1">{label}</p>
-          <p className="text-lg font-bold number-mono" style={{ color: payload[0].payload.color }}>
-            {payload[0].value}%
+          <p className="text-lg font-bold number-mono" style={{ color: item.payload.color }}>
+            {item.value}%
           </p>
           <p className="text-xs text-muted-foreground">
-            {payload[0].payload.trades} trades
+            {item.payload.trades} trades
           </p>
         </div>
       );

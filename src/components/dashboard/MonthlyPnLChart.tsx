@@ -23,7 +23,9 @@ export function MonthlyPnLChart() {
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  type TooltipPayloadItem = { payload: { pnl: number; trades: number; wins: number } };
+
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string | number }) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
       return (

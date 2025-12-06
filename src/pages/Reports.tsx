@@ -1,14 +1,21 @@
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useTradeStore, calculateStats, getMonthlyPnL } from '@/store/tradeStore';
-import { FileText, Download, Calendar, TrendingUp } from 'lucide-react';
+import { FileText, Download, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function Reports() {
   const trades = useTradeStore((state) => state.trades);
   const stats = calculateStats(trades);
   const monthlyData = getMonthlyPnL(trades);
+  const reportRef = useRef<HTMLDivElement | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  // Quality scale for html2canvas. 2-3 is typical; higher = sharper but heavier memory.
+  const captureScale = 2.5;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -34,16 +41,116 @@ export default function Reports() {
     });
   };
 
-  const generateReport = () => {
-    toast({
-      title: 'Coming Soon',
-      description: 'PDF report generation will be available soon.',
-    });
+  const generateReport = async () => {
+    if (!reportRef.current) {
+      toast({ title: 'Error', description: 'Report element not found.' });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      toast({ title: 'Generating PDF', description: 'Please wait...' });
+
+      // Capture the report area as a high-resolution canvas
+      const canvas = await html2canvas(reportRef.current, { scale: captureScale });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      // Margins in mm
+      const marginTop = 12;
+      const marginBottom = 12;
+      const marginLeft = 12;
+      const marginRight = 12;
+
+      const usablePageWidth = pageWidth - marginLeft - marginRight;
+      const usablePageHeight = pageHeight - marginTop - marginBottom;
+
+      // Helper conversions between px and mm (assume 96 DPI base)
+      const pxToMm = (px: number) => (px * 25.4) / 96;
+      const mmToPx = (mm: number) => (mm * 96) / 25.4;
+
+      const srcWidthPx = canvas.width;
+      const srcHeightPx = canvas.height;
+
+      // Image dimensions in mm for the full canvas
+      const imgWidthMm = pxToMm(srcWidthPx);
+      const imgHeightMm = pxToMm(srcHeightPx);
+
+      // Scale factor to fit width to usable page width
+      const scale = usablePageWidth / imgWidthMm;
+
+      // Convert usable page height to px on source canvas to slice (accounting for scale)
+      const pageSliceHeightPx = Math.floor(mmToPx(usablePageHeight / scale));
+
+      // Number of pages required
+      const totalPages = Math.ceil(srcHeightPx / pageSliceHeightPx);
+
+      for (let page = 0; page < totalPages; page++) {
+        // Create a temporary canvas to hold the slice for this PDF page
+        const sliceCanvas = document.createElement('canvas');
+        const sliceHeightPx = Math.min(pageSliceHeightPx, srcHeightPx - page * pageSliceHeightPx);
+        sliceCanvas.width = srcWidthPx;
+        sliceCanvas.height = sliceHeightPx;
+
+        const ctx = sliceCanvas.getContext('2d');
+        if (!ctx) throw new Error('Failed to get canvas context');
+
+        // Draw the slice from the source canvas onto the slice canvas
+        ctx.drawImage(
+          canvas,
+          0,
+          page * pageSliceHeightPx,
+          srcWidthPx,
+          sliceHeightPx,
+          0,
+          0,
+          srcWidthPx,
+          sliceHeightPx
+        );
+
+        const imgData = sliceCanvas.toDataURL('image/png');
+
+        // Height in mm for this slice after scaling to PDF usable width
+        const sliceHeightMm = pxToMm(sliceHeightPx) * scale;
+
+        const x = marginLeft;
+        const y = marginTop + 8; // leave space for header
+
+        // Add header (title + date) at top of each page
+        pdf.setFontSize(12);
+        const headerText = 'TradeLog - Reports';
+        const dateText = new Date().toLocaleDateString();
+        pdf.text(headerText, pageWidth / 2, 10, { align: 'center' });
+        pdf.setFontSize(9);
+        pdf.text(dateText, pageWidth - marginRight, 10, { align: 'right' });
+
+        // Add the slice image
+        pdf.addImage(imgData, 'PNG', x, y, usablePageWidth, sliceHeightMm);
+
+        // Footer with page numbers
+        const footerText = `Page ${page + 1} of ${totalPages}`;
+        pdf.setFontSize(9);
+        pdf.text(footerText, pageWidth / 2, pageHeight - 6, { align: 'center' });
+
+        if (page < totalPages - 1) pdf.addPage();
+      }
+
+      pdf.save(`trading-report-${new Date().toISOString().split('T')[0]}.pdf`);
+
+      toast({ title: 'Done', description: 'PDF downloaded successfully.' });
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to generate PDF.' });
+      console.error('PDF generation error', err);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" ref={reportRef}>
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -57,9 +164,13 @@ export default function Reports() {
               <Download className="w-4 h-4" />
               Export JSON
             </Button>
-            <Button onClick={generateReport} className="gap-2">
-              <FileText className="w-4 h-4" />
-              Generate PDF
+            <Button onClick={generateReport} className="gap-2" disabled={isGenerating}>
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4" />
+              )}
+              {isGenerating ? 'Generating...' : 'Generate PDF'}
             </Button>
           </div>
         </div>
